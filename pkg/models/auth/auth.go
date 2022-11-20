@@ -2,6 +2,7 @@ package auth
 
 import (
 	"agile/pkg/dbManager"
+	"database/sql"
 	"fmt"
 )
 
@@ -21,19 +22,23 @@ type Role struct {
 func (u *User) SignIn() error {
 	var (
 		err   error
-		count int
+		exist int
 	)
 
-	err = dbManager.Get().QueryRow(`select count(*),telnumber from public.users where telnumber=$1 and pass=$2 group by telnumber`, u.Telephone, u.Password).Scan(&count, &u.Telephone)
+	err = dbManager.Get().QueryRow(`select count(*),telnumber from public.users where telnumber=$1 and pass=$2 group by telnumber`, u.Telephone, u.Password).Scan(&exist, &u.Telephone)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			err = nil
+			return fmt.Errorf("bad login or password")
+		}
 		return fmt.Errorf("SignIn err: %v", err)
 	}
 
-	// user not found
-	if count == 0 {
+	if exist == 0 {
 		return fmt.Errorf("user not found")
 	}
 
+	//select user roles
 	rows, err := dbManager.Get().Query(`select distinct r.rname from public.users u inner join roles r on u.fk_role = r.id  where telnumber=$1`, u.Telephone)
 	if err != nil {
 		return fmt.Errorf("SignIn err: %v", err)
@@ -53,10 +58,33 @@ func (u *User) SignIn() error {
 func (u *User) SignUp() error {
 	var err error
 
-	_, err = dbManager.Get().Exec(`insert into public.users(telnumber,pass) values ($1,$2)`, u.Telephone, u.Password)
+	exists, err := u.checkExists()
+	if err != nil {
+		return err
+	}
+	if exists {
+		return fmt.Errorf("user already exist")
+	}
+
+	//TODO change set role
+	_, err = dbManager.Get().Exec(`insert into public.users(telnumber,pass,fk_role) values ($1,$2,$3)`, u.Telephone, u.Password, 2)
 	if err != nil {
 		return fmt.Errorf("SignUp err: %v", err)
 	}
 
 	return nil
+}
+
+func (u *User) checkExists() (bool, error) {
+	var (
+		exist int
+		err   error
+	)
+
+	err = dbManager.Get().QueryRow(`select count(*) from public.users where telnumber=$1`, u.Telephone).Scan(&exist)
+	if err != nil {
+		return false, fmt.Errorf("checkExist err: %v", err)
+	}
+
+	return exist > 0, err
 }
