@@ -13,6 +13,6 @@ type HttpError struct {
 
 func NewHttpError(w http.ResponseWriter, err error) []byte {
 	w.WriteHeader(400)
-	data, _ := json.Marshal(HttpError{Date: time.Now(), Error: err.Error()})
+	data, _ := json.Marshal(err.Error())
 	return data
 }

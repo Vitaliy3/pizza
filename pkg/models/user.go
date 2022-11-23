@@ -12,6 +12,7 @@ type User struct {
 	Password    string   `json:"password"`
 	AccessToken string   `json:"accessToken"`
 	Roles       []string `json:"roles"`
+	Blocked     bool     `json:"blocked"`
 }
 
 type Role struct {
@@ -67,7 +68,7 @@ func (u *User) SignUp() error {
 	}
 
 	//TODO change set role
-	_, err = dbManager.Get().Exec(`insert into public.users(telnumber,pass,fk_role) values ($1,$2,$3)`, u.Telephone, u.Password, 2)
+	_, err = dbManager.Get().Exec(`insert into public.users(telnumber,pass,fk_role) values ($1,$2,$3)`, u.Telephone, u.Password, 1)
 	if err != nil {
 		return fmt.Errorf("SignUp err: %v", err)
 	}
@@ -77,7 +78,7 @@ func (u *User) SignUp() error {
 
 func (u *User) Select() (User, error) {
 	var user User
-	err := dbManager.Get().QueryRow(`select id,telnumber,pass from public.users where id=$1`, u.Id).Scan(&user.Id, &user.Telephone, &user.Password)
+	err := dbManager.Get().QueryRow(`select id,telnumber,pass,blocked from public.users where id=$1`, u.Id).Scan(&user.Id, &user.Telephone, &user.Password, &user.Blocked)
 	if err != nil {
 		fmt.Errorf("err select user:%v", err)
 	}
@@ -109,4 +110,42 @@ func (u *User) checkExists() (bool, error) {
 	}
 
 	return exist > 0, err
+}
+
+func (u *User) GetAll() ([]User, error) {
+	var users = make([]User, 0)
+
+	rows, err := dbManager.Get().Query(`select id,telnumber,pass from public.users`)
+	if err != nil {
+		fmt.Errorf("err select user:%v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		user := User{}
+		err = rows.Scan(&user.Id, &user.Telephone, &user.Password)
+		if err != nil {
+			fmt.Println("err scan user.geall")
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, err
+}
+
+func (u *User) SetRole(phone string, role int) error {
+	_, err := dbManager.Get().Exec(`update public.users set fk_role=$1 where telnumber=$2 `, role, phone)
+	if err != nil {
+		return fmt.Errorf("setrole err: %v", err)
+	}
+	return err
+}
+
+func (u *User) Ban(phone string) error {
+	_, err := dbManager.Get().Exec(`update public.users set blocked=true where telnumber=$1`, phone)
+	if err != nil {
+		return fmt.Errorf("setrole err: %v", err)
+	}
+	return err
 }

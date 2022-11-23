@@ -3,62 +3,26 @@ package handlers
 import (
 	"agile/pkg/models"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
-func GetProducts(w http.ResponseWriter, r *http.Request) {
+func Items(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
 	if r.Method == "POST" {
 		models.SaveImage(w, r)
 		return
 	}
 
-	p := make([]models.Product, 0)
-	p = append(p, models.Product{
-		Id:          1,
-		Title:       "title1",
-		Description: "desc1 desc1 desc1 desc1 desc1 desc1",
-		Price:       12.5,
-		Image:       "pain.jpg",
-	})
-	p = append(p, models.Product{
-		Id:          2,
-		Title:       "title1",
-		Description: "desc1 desc1 desc1 desc1 desc1 desc1",
-		Price:       12.55,
-		Image:       "pain.jpg",
-	})
-	p = append(p, models.Product{
-		Id:          3,
-		Title:       "title1",
-		Description: "desc1 desc1 desc1 desc1 desc1 desc1",
-		Price:       12.55,
-		Image:       "pain.jpg",
-	})
-	p = append(p, models.Product{
-		Id:          4,
-		Title:       "title1",
-		Description: "desc1 desc1 desc1 desc1 desc1 desc1",
-		Price:       12.5,
-		Image:       "pain.jpg",
-	})
-	p = append(p, models.Product{
-		Id:          5,
-		Title:       "title1",
-		Description: "desc1 desc1 desc1 desc1 desc1 desc1",
-		Price:       12.5,
-		Image:       "pain.jpg",
-	})
+	product := models.Product{}
+	data, err := product.GetAll()
+	if err != nil {
+		fmt.Println(err)
+		w.Write([]byte(err.Error()))
+	}
 
-	//data, err := p.GetProducts()
-	//if err != nil {
-	//	fmt.Println(err)
-	//	w.Write([]byte(err.Error()))
-	//}
-
-	b, _ := json.Marshal(p)
+	b, _ := json.Marshal(data)
 	w.Write(b)
 
 }

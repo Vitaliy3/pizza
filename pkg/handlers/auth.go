@@ -3,6 +3,7 @@ package handlers
 import (
 	"agile/pkg/models"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -29,7 +30,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		err = user.SignIn()
 		if err != nil {
 			fmt.Println("user.SignIn err:", err)
-			w.Write(NewHttpError(w, err))
+			w.Write(NewHttpError(w, errors.New("Неверный логин или пароль!")))
 			return
 		}
 

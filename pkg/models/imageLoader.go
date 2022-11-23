@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-const MAX_UPLOAD_SIZE = 1024 * 1024 // 1MB
+const MAX_UPLOAD_SIZE = 1024 * 1024 * 1024 // 10MB
 
 // Progress is used to track the progress of a file upload.
 // It implements the io.Writer interface so it can be passed
@@ -103,12 +103,22 @@ func SaveImage(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		panic(err)
 	}
+	categoryId, err := strconv.Atoi(r.Form.Get("categoryId"))
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+
+	urlToken := r.URL.Query().Get("token")
+	session := Sessions[urlToken]
 
 	product := Product{
 		Title:       r.Form.Get("title"),
 		Description: r.Form.Get("description"),
 		Price:       price,
 		Image:       imageName,
+		CategoryId:  int64(categoryId),
+		UserId:      int64(session.Id),
 	}
 
 	product.Save()
