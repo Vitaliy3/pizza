@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"agile/pkg/models/auth"
-	"agile/pkg/models/session"
+	"agile/pkg/models"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -14,7 +13,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 	if r.Method == "POST" {
-		user := auth.User{}
+		user := models.User{}
 		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			w.Write(NewHttpError(w, err))
@@ -34,7 +33,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		token := session.Add(user)
+		token := models.Add(user)
 		data, err = json.Marshal(token)
 		if err != nil {
 			w.Write(NewHttpError(w, err))
@@ -50,7 +49,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 	if r.Method == "POST" {
-		user := auth.User{}
+		user := models.User{}
 		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			w.Write(NewHttpError(w, err))
@@ -77,7 +76,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		token := session.Add(user)
+		token := models.Add(user)
 		data, err = json.Marshal(token)
 		if err != nil {
 			fmt.Println("err marshal token:", err)
@@ -86,5 +85,32 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 
 		w.Write(data)
 
+	}
+}
+
+func UserUpdate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "POST" {
+		user := models.User{}
+		data, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.Write(NewHttpError(w, err))
+			return
+		}
+
+		err = json.Unmarshal(data, &user)
+		if err != nil {
+			fmt.Println("signin: err unmarshall user ", err)
+			w.Write(NewHttpError(w, err))
+			return
+		}
+		fmt.Println("user pidor", user)
+		err = user.Update()
+		if err != nil {
+			w.Write(NewHttpError(w, err))
+			return
+		}
 	}
 }

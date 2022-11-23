@@ -1,4 +1,4 @@
-package auth
+package models
 
 import (
 	"agile/pkg/dbManager"
@@ -25,7 +25,7 @@ func (u *User) SignIn() error {
 		exist int
 	)
 
-	err = dbManager.Get().QueryRow(`select count(*),telnumber from public.users where telnumber=$1 and pass=$2 group by telnumber`, u.Telephone, u.Password).Scan(&exist, &u.Telephone)
+	err = dbManager.Get().QueryRow(`select count(*),telnumber,id from public.users where telnumber=$1 and pass=$2 group by telnumber,id`, u.Telephone, u.Password).Scan(&exist, &u.Telephone, &u.Id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = nil
@@ -73,6 +73,28 @@ func (u *User) SignUp() error {
 	}
 
 	return nil
+}
+
+func (u *User) Select() (User, error) {
+	var user User
+	err := dbManager.Get().QueryRow(`select id,telnumber,pass from public.users where id=$1`, u.Id).Scan(&user.Id, &user.Telephone, &user.Password)
+	if err != nil {
+		fmt.Errorf("err select user:%v", err)
+	}
+	return user, err
+}
+
+func (u *User) Update() error {
+	selectedUser, err := u.Select()
+	if err != nil {
+		return err
+	}
+
+	_, err = dbManager.Get().Exec(`update public.users set telnumber =$1,pass =$2 where id=$3 `, u.Telephone, u.Password, selectedUser.Id)
+	if err != nil {
+		return fmt.Errorf("update selectedUser err: %v", err)
+	}
+	return err
 }
 
 func (u *User) checkExists() (bool, error) {

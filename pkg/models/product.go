@@ -10,7 +10,9 @@ type Product struct {
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
-	Image       string  `json:"fileName"`
+	Count       int     `json:"count"`
+	Image       string  `json:"image"`
+	Discount    float64 `json:"discount"`
 }
 
 func (p *Product) Save() {

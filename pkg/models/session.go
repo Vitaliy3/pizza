@@ -1,14 +1,12 @@
-package session
+package models
 
 import (
-	"agile/pkg/models/auth"
-
 	"github.com/google/uuid"
 )
 
-var Sessions = make(map[string]auth.User)
+var Sessions = make(map[string]User)
 
-func Add(user auth.User) auth.User {
+func Add(user User) User {
 	newtoken, _ := uuid.NewUUID()
 	user.AccessToken = newtoken.String()
 	Sessions[newtoken.String()] = user

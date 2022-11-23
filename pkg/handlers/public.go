@@ -19,7 +19,7 @@ func Public(w http.ResponseWriter, r *http.Request) {
 	imageName := tmp[len(tmp)-1]
 	fmt.Println("imageName:", imageName)
 	if imageName != "" {
-		file, err := os.ReadFile("../uploads/" + imageName)
+		file, err := os.ReadFile("uploads/" + imageName)
 		if err != nil {
 			log.Println(err)
 			w.Write([]byte("File not found"))

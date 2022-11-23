@@ -16,8 +16,9 @@ func main() {
 	mux.HandleFunc("/", handlers.Index)
 	mux.HandleFunc("/signIn/", handlers.SignIn)
 	mux.HandleFunc("/signUp/", handlers.SignUp)
+	mux.HandleFunc("/userUpdate/", handlers.UserUpdate)
 	mux.HandleFunc("/images/", handlers.Public)
-	mux.HandleFunc("/items/", handlers.GetAll)
+	mux.HandleFunc("/products/", handlers.GetProducts)
 
 	if err := http.ListenAndServe(":4500", mux); err != nil {
 		log.Fatal(err)
