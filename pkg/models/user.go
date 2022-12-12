@@ -3,6 +3,7 @@ package models
 import (
 	"agile/pkg/dbManager"
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
@@ -26,17 +27,17 @@ func (u *User) SignIn() error {
 		exist int
 	)
 
-	err = dbManager.Get().QueryRow(`select count(*),telnumber,id from public.users where telnumber=$1 and pass=$2 group by telnumber,id`, u.Telephone, u.Password).Scan(&exist, &u.Telephone, &u.Id)
+	err = dbManager.Get().QueryRow(`select count(*),telnumber,id,blocked from public.users where telnumber=$1 and pass=$2 group by telnumber,id`, u.Telephone, u.Password).Scan(&exist, &u.Telephone, &u.Id, &u.Blocked)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = nil
-			return fmt.Errorf("bad login or password")
+			return fmt.Errorf("Неверный логин или пароль")
 		}
 		return fmt.Errorf("SignIn err: %v", err)
 	}
 
-	if exist == 0 {
-		return fmt.Errorf("user not found")
+	if u.Blocked {
+		return errors.New("Пользователь заблокирован")
 	}
 
 	//select user roles
@@ -64,7 +65,7 @@ func (u *User) SignUp() error {
 		return err
 	}
 	if exists {
-		return fmt.Errorf("user already exist")
+		return fmt.Errorf("Такой пользователь уже существует")
 	}
 
 	//TODO change set role
@@ -135,17 +136,37 @@ func (u *User) GetAll() ([]User, error) {
 }
 
 func (u *User) SetRole(phone string, role int) error {
-	_, err := dbManager.Get().Exec(`update public.users set fk_role=$1 where telnumber=$2 `, role, phone)
+	_, _, err := u.CheckBan(phone)
+	if err != nil {
+		return fmt.Errorf("Такого пользователя не существует!")
+	}
+
+	_, err = dbManager.Get().Exec(`update public.users set fk_role=$1 where telnumber=$2 `, role, phone)
+	if err != nil {
+		return fmt.Errorf("Такого пользователя не существует!")
+	}
+	return err
+}
+
+func (u *User) Ban(phone string) error {
+	_, _, err := u.CheckBan(phone)
+	if err != nil {
+		return fmt.Errorf("Такого пользователя не существует")
+	}
+
+	_, err = dbManager.Get().Exec(`update public.users set blocked=true where telnumber=$1`, phone)
 	if err != nil {
 		return fmt.Errorf("setrole err: %v", err)
 	}
 	return err
 }
 
-func (u *User) Ban(phone string) error {
-	_, err := dbManager.Get().Exec(`update public.users set blocked=true where telnumber=$1`, phone)
+func (u *User) CheckBan(phone string) (int, bool, error) {
+	var banned bool
+	var id int
+	err := dbManager.Get().QueryRow(`select id,blocked from public.users where telnumber=$1`, phone).Scan(&id, &banned)
 	if err != nil {
-		return fmt.Errorf("setrole err: %v", err)
+		return id, false, fmt.Errorf("CheckBan err: %v", err)
 	}
-	return err
+	return id, banned, err
 }

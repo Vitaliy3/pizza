@@ -26,6 +26,7 @@ func Ban(w http.ResponseWriter, r *http.Request) {
 		err := user.Ban(ban.Phone)
 		if err != nil {
 			fmt.Println(err)
+			w.Write(NewHttpError(w, err))
 			return
 		}
 		w.Write(nil)

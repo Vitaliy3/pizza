@@ -26,6 +26,7 @@ func SetRole(w http.ResponseWriter, r *http.Request) {
 		err := user.SetRole(role.Phone, role.Role)
 		if err != nil {
 			fmt.Println(err)
+			w.Write(NewHttpError(w, err))
 		}
 
 		w.Write(nil)
