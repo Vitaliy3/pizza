@@ -36,7 +36,8 @@ func (u *User) SignIn() error {
 		return fmt.Errorf("SignIn err: %v", err)
 	}
 
-	if u.Blocked {
+	_, banned, _ := u.CheckBan(u.Telephone)
+	if banned {
 		return errors.New("Пользователь заблокирован")
 	}
 
@@ -136,25 +137,31 @@ func (u *User) GetAll() ([]User, error) {
 }
 
 func (u *User) SetRole(phone string, role int) error {
-	_, _, err := u.CheckBan(phone)
-	if err != nil {
+	_, banned, err := u.CheckBan(phone)
+	if banned {
 		return fmt.Errorf("Такого пользователя не существует!")
 	}
 
 	_, err = dbManager.Get().Exec(`update public.users set fk_role=$1 where telnumber=$2 `, role, phone)
 	if err != nil {
+		fmt.Println("SetRole() ", err)
 		return fmt.Errorf("Такого пользователя не существует!")
 	}
 	return err
 }
 
 func (u *User) Ban(phone string) error {
-	_, _, err := u.CheckBan(phone)
+	_, userExists, err := u.GetByPhone(phone)
 	if err != nil {
+		fmt.Println("Ban() ", err)
 		return fmt.Errorf("Такого пользователя не существует")
 	}
+	if !userExists {
+		return fmt.Errorf("Такого пользователя не существует")
 
-	_, err = dbManager.Get().Exec(`update public.users set blocked=true where telnumber=$1`, phone)
+	}
+
+	_, err = dbManager.Get().Exec(`insert into public.banned(telnumber) values($1)`, phone)
 	if err != nil {
 		return fmt.Errorf("setrole err: %v", err)
 	}
@@ -162,11 +169,27 @@ func (u *User) Ban(phone string) error {
 }
 
 func (u *User) CheckBan(phone string) (int, bool, error) {
-	var banned bool
 	var id int
-	err := dbManager.Get().QueryRow(`select id,blocked from public.users where telnumber=$1`, phone).Scan(&id, &banned)
+	err := dbManager.Get().QueryRow(`select id from public.banned where telnumber=$1`, phone).Scan(&id)
 	if err != nil {
 		return id, false, fmt.Errorf("CheckBan err: %v", err)
 	}
-	return id, banned, err
+	if id != 0 {
+		return id, true, err
+	}
+	return id, false, err
+}
+
+func (u *User) GetByPhone(phone string) (int, bool, error) {
+	var id int
+	fmt.Println("PHONE PIDARAS ", phone)
+	err := dbManager.Get().QueryRow(`select id from public.users where telnumber=$1`, phone).Scan(&id)
+	if err != nil {
+		return id, false, fmt.Errorf("CheckBan err: %v", err)
+	}
+	fmt.Println(id)
+	if id != 0 {
+		return id, true, err
+	}
+	return id, false, err
 }

@@ -27,6 +27,7 @@ type Buy struct {
 	Location   []float64 `json:"location"`
 	Phone      string    `json:"phone"`
 	Text       string    `json:"text"`
+	Called     bool      `json:"called"`
 }
 
 func (p *Product) Save() {
@@ -57,7 +58,7 @@ func (b *Buy) Buy(userId int) error {
 	location := fmt.Sprintf("%f:%f", b.Location[0], b.Location[1])
 	fmt.Println("location:", location)
 
-	_, err := dbManager.Get().Exec(`insert into public.buy(amount,inbound,fk_product,c_location,telnumber,c_text) values ($1,$2,$3,$4,$5,$6)`, b.Amount, b.Inbound, b.ItemId, location, b.Phone, b.Text)
+	_, err := dbManager.Get().Exec(`insert into public.buy(amount,inbound,fk_product,c_location,telnumber,c_text) values ($1,$2,$3,$4,$5,$6)`, b.Amount, true, b.ItemId, location, b.Phone, b.Text)
 	if err != nil {
 		fmt.Println("product.save err:", err)
 	}
@@ -66,7 +67,7 @@ func (b *Buy) Buy(userId int) error {
 
 func (b *Buy) BuyGetAll() ([]Buy, error) {
 
-	rows, err := dbManager.Get().Query(`select id,amount,inbound,fk_product,c_location,telnumber,c_text from public.buy`)
+	rows, err := dbManager.Get().Query(`select id,amount,inbound,fk_product,c_location,telnumber,c_text,called from public.buy`)
 	if err != nil {
 		fmt.Println("buy getall err:", err)
 	}
@@ -75,7 +76,7 @@ func (b *Buy) BuyGetAll() ([]Buy, error) {
 	for rows.Next() {
 		location := ""
 		buy := Buy{}
-		rows.Scan(&buy.ItemId, &buy.Amount, &buy.Inbound, &buy.FK_Product, &location, &buy.Phone, &buy.Text)
+		rows.Scan(&buy.ItemId, &buy.Amount, &buy.Inbound, &buy.FK_Product, &location, &buy.Phone, &buy.Text, &buy.Called)
 		l := strings.Split(location, ":")
 		l1, err := strconv.ParseFloat(l[0], 64)
 		if err != nil {
@@ -93,8 +94,8 @@ func (b *Buy) BuyGetAll() ([]Buy, error) {
 	return buys, err
 }
 
-func (b *Buy) StopTracking(itemId int) error {
-	_, err := dbManager.Get().Exec(`update public.buy set inbound=false where id=$1`, itemId)
+func (b *Buy) StopTracking(item Buy) error {
+	_, err := dbManager.Get().Exec(`update public.buy set inbound=$3, called=$2 where id=$1`, item.ItemId, item.Called, item.Inbound)
 	if err != nil {
 		fmt.Println("buy.StopTracking err:", err)
 	}

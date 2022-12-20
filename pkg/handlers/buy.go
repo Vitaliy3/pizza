@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
 )
 
 func Buy(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +17,6 @@ func Buy(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		buy := models.Buy{}
 		data, err := ioutil.ReadAll(r.Body)
-		fmt.Println("data:", data)
 
 		if err != nil {
 			fmt.Println("buy err readall:", err)
@@ -41,6 +37,8 @@ func Buy(w http.ResponseWriter, r *http.Request) {
 
 		userModel := models.User{Id: session.Id}
 		id, isBlocked, _ := userModel.CheckBan(buy.Phone)
+		fmt.Println("isbl", isBlocked)
+		fmt.Println("isbl", buy.Phone)
 		if isBlocked {
 			w.Write(NewHttpError(w, errors.New("Пользователь заблокирован")))
 			return
@@ -54,19 +52,19 @@ func Buy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "PUT" {
-		url, err := url.Parse(r.URL.String())
+		buy := models.Buy{}
+		data, err := ioutil.ReadAll(r.Body)
+
 		if err != nil {
-			fmt.Println("url.parse err:", err)
-			return
+			fmt.Println("buy err readall:", err)
 		}
 
-		params := strings.Split(url.String(), "/")
-		buy := models.Buy{}
-		fmt.Println(params[2])
-		itemIdStr := strings.TrimSpace(params[2])
-		itemId, _ := strconv.Atoi(itemIdStr)
-		fmt.Println("STOP ", itemId)
-		err = buy.StopTracking(itemId)
+		err = json.Unmarshal(data, &buy)
+		if err != nil {
+			fmt.Println("err unmarshal:", err)
+		}
+
+		err = buy.StopTracking(buy)
 		if err != nil {
 			fmt.Println("=buy.StopTracking err:", err)
 		}
